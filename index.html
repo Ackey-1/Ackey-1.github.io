@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图序列判断与绘制</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        #graphCanvas {
+            border: 1px solid black;
+            margin-top: 20px;
+        }
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+        footer small {
+            color: #888;
+        }
+        footer .author {
+            margin-top: 10px;
+            font-size: 0.8em;
+            color: #444;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        button {
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .fadeIn {
+            animation: fadeIn 1s ease-in-out;
+        }
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="fadeIn">
+    <nav class="container-fluid">
+        <ul>
+            <li><strong>图序列判断与绘制</strong></li>
+        </ul>
+        <ul>
+            <li><a href="#" role="button">Home</a></li>
+            <li><a href="#" role="button">About</a></li>
+            <li><a href="#" role="button">Contact</a></li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        <hgroup>
+            <h2>请输入一个有限非负整数序列，用逗号分隔：</h2>
+            <h3>检查该序列是否为图序列并绘制图形</h3>
+        </hgroup>
+
+        <input type="text" id="sequenceInput" placeholder="例: 3, 2, 2, 1, 0">
+        <button onclick="checkSequence()">检查序列</button>
+
+        <h3 id="result"></h3>
+
+        <canvas id="graphCanvas" width="500" height="500"></canvas>
+    </main>
+
+    <section aria-label="Algorithm Principle">
+        <div class="container">
+            <hgroup>
+                <h2>算法原理</h2>
+                <h3>Havel-Hakimi 算法的基本原理</h3>
+            </hgroup>
+            <p>
+                Havel-Hakimi 算法是一种图论中用于判断一个有限非负整数序列是否可以构成一个图的算法。图序列通常用来表示一个图的各个顶点的度数，即每个顶点连接的边数。该算法的基本思想是：首先判断度数之和是否为偶数，然后通过迭代的方式，从序列中选择最大的度数，减少与其相连的其他顶点的度数，直到所有的度数都为零或者无法继续为止。
+            </p>
+            <p>
+                该算法通过递归地从最大度数顶点开始，逐步减少相邻顶点的度数，并重新排序序列进行判断。若在任何一步中出现不符合条件的情况（例如度数小于零），则该序列不是一个合法的图序列。
+            </p>
+        </div>
+    </section>
+
+    <footer class="container">
+        <small>© 2024 图序列判断与绘制</small>
+        <div class="author">
+            作者：李文杰 | 学号：202452012022
+        </div>
+    </footer>
+
+    <script>
+        function isAllZeros(sequence) {
+            return sequence.every(val => val === 0);
+        }
+
+        function isGraphSequence(sequence) {
+            let n = sequence.length;
+            let degreeSum = sequence.reduce((a, b) => a + b, 0);
+            if (degreeSum % 2 !== 0) return false; // degree sum should be even
+
+            // Sort the sequence in non-increasing order
+            sequence.sort((a, b) => b - a);
+
+            while (sequence[0] > 0) {
+                let d = sequence.shift(); // Remove the first element
+                if (d > sequence.length) return false;
+
+                for (let i = 0; i < d; i++) {
+                    sequence[i]--;
+                    if (sequence[i] < 0) return false;
+                }
+
+                // Sort the sequence again
+                sequence.sort((a, b) => b - a);
+            }
+            return true;
+        }
+
+        function sortMaxIndex(sequence, maxVal) {
+            let temp = [...sequence];
+            let indices = [];
+            for (let i = 0; i < maxVal; i++) {
+                let maxIdx = temp.indexOf(Math.max(...temp));
+                indices.push(maxIdx);
+                temp[maxIdx] = 0;
+            }
+            return indices;
+        }
+
+        function drawGraph(sequence) {
+            const canvas = document.getElementById('graphCanvas');
+            const ctx = canvas.getContext('2d');
+            const R = 200;
+            const numVertices = sequence.length;
+            const alpha = [];
+
+            // 计算顶点的圆形坐标
+            const vertices = [];
+            for (let i = 0; i < numVertices; i++) {
+                alpha.push((2 * Math.PI / numVertices) * i);
+                vertices.push({
+                    x: R * Math.cos(alpha[i]) + canvas.width / 2,
+                    y: R * Math.sin(alpha[i]) + canvas.height / 2
+                });
+            }
+
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'red';
+            vertices.forEach(vertex => {
+                ctx.beginPath();
+                ctx.arc(vertex.x, vertex.y, 5, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+
+            sequence.sort((a, b) => b - a); // 从大到小排序
+
+            while (!isAllZeros(sequence)) {
+                const maxVal = Math.max(...sequence);
+                const maxIdx = sequence.indexOf(maxVal);
+                sequence[maxIdx] = 0;
+
+                const maxIndices = sortMaxIndex(sequence, maxVal);
+                for (const i of maxIndices) {
+                    if (sequence[i] > 0) {
+                        ctx.beginPath();
+                        ctx.moveTo(vertices[maxIdx].x, vertices[maxIdx].y);
+                        ctx.lineTo(vertices[i].x, vertices[i].y);
+                        ctx.strokeStyle = 'green';
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+
+                        sequence[i] -= 1;
+                    }
+                }
+            }
+        }
+
+        function checkSequence() {
+            const input = document.getElementById('sequenceInput').value;
+            const result = document.getElementById('result');
+
+            let sequence;
+            try {
+                sequence = input.split(',').map(num => parseInt(num.trim(), 10));
+                if (sequence.some(num => num < 0)) {
+                    result.textContent = "有负数，请重新输入一个有效的序列。";
+                    return;
+                }
+            } catch (error) {
+                result.textContent = "无效的输入，请重新输入一个有效的序列。";
+                return;
+            }
+
+            if (isGraphSequence([...sequence])) {
+                drawGraph([...sequence]); // 传递序列绘图
+                result.textContent = "该序列为图序列，已绘制图形。";
+            } else {
+                result.textContent = `序列 [${input}] 不是图序列。`;
+            }
+        }
+    </script>
+</body>
+</html>
